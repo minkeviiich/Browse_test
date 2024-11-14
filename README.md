@@ -20,7 +20,7 @@ cd Browse_test
 ```
 
 ## Сборка и запуск с Docker Compose
-- Используйте Docker Compose для сборки и запуска сервисов.
+Используйте Docker Compose для сборки и запуска сервисов:
 ```
 make build
 make up
