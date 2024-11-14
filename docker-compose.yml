@@ -1,0 +1,81 @@
+version: '3'
+services:
+  app:
+    build: .
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      selenium-hub:
+        condition: service_healthy
+      chrome:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${APP_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "${RABBITMQ_PORT}:${RABBITMQ_PORT}"
+      - "${RABBITMQ_MANAGEMENT_PORT}:${RABBITMQ_MANAGEMENT_PORT}"
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  selenium-hub:
+    image: selenium/hub:4.0.0
+    ports:
+      - "${SELENIUM_EVENT_BUS_PUBLISH_PORT}:${SELENIUM_EVENT_BUS_PUBLISH_PORT}"
+      - "${SELENIUM_EVENT_BUS_SUBSCRIBE_PORT}:${SELENIUM_EVENT_BUS_SUBSCRIBE_PORT}"
+      - "${SELENIUM_HUB_PORT}:${SELENIUM_HUB_PORT}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${SELENIUM_HUB_PORT}/wd/hub/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  chrome:
+    image: selenium/node-chrome:4.0.0
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=${SELENIUM_EVENT_BUS_PUBLISH_PORT}
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=${SELENIUM_EVENT_BUS_SUBSCRIBE_PORT}
+      - HUB_HOST=selenium-hub
+      - NODE_MAX_SESSION=1
+      - NODE_PORT=${CHROME_NODE_PORT}
+    ports:
+      - "${CHROME_NODE_PORT}:${CHROME_NODE_PORT}"
+    volumes:
+      - /dev/shm:/dev/shm
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://selenium-hub:${SELENIUM_HUB_PORT}/wd/hub/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  consumer:
+    build: .
+    command: ["poetry", "run", "python", "browse_test/consumer.py"]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      selenium-hub:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f browse_test/consumer.py || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  rabbitmq_data: {}
