@@ -13,7 +13,7 @@
 
 ## Настройка и запуск
 
-1. Клонирование репозитория
+Клонирование репозитория:
 ```
 git clone https://github.com/minkeviiich/Brows_test.git
 cd Browse_test
