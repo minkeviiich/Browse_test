@@ -12,4 +12,4 @@ RUN poetry install
 
 COPY . /code/
 
-CMD ["poetry", "run", "python", "browse_test/main.py"]
+CMD ["poetry", "run", "python", "-m", "browse_test.main"]

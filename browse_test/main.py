@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 import uvicorn
 from pydantic import BaseModel, field_validator, FieldValidationInfo, ValidationError 
 import validators
-from rabbitmq_utils import get_rabbitmq_connection
+from browse_test.rabbitmq_utils import get_rabbitmq_connection
 
 app = FastAPI()
 

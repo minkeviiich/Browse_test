@@ -2,7 +2,7 @@ import logging
 import json
 from typing import Any
 from selenium import webdriver
-from rabbitmq_utils import get_rabbitmq_connection
+from browse_test.rabbitmq_utils import get_rabbitmq_connection
 
 logging.basicConfig(level=logging.INFO)
 
