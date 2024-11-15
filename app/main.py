@@ -1,11 +1,15 @@
 import json
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 import uvicorn
 from pydantic import BaseModel, field_validator, FieldValidationInfo, ValidationError 
 import validators
-from browse_test.rabbitmq_utils import get_rabbitmq_connection
+from app.rabbitmq_utils import get_rabbitmq_connection
+import logging
 
 app = FastAPI()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class UrlRequest(BaseModel):
@@ -33,15 +37,24 @@ def browse(url_request: UrlRequest) -> dict:
         message: str = json.dumps({"url": url_request.url})
         channel.basic_publish(exchange="", routing_key="url_queue", body=message)
         connection.close()
-        return {"message": "URL added to queue"}
+        return JSONResponse(
+            content={"message": "URL added to queue"},
+            status_code=200
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        logger.error("Error in /browse endpoint: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")
 def health_check() -> dict:
-    return {"status": "healthy"}
+    return JSONResponse(content={"status": "healthy"})
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000,
+        reload=True
+    )

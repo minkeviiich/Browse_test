@@ -2,9 +2,8 @@ import logging
 import json
 from typing import Any
 from selenium import webdriver
-from browse_test.rabbitmq_utils import get_rabbitmq_connection
-
-logging.basicConfig(level=logging.INFO)
+from app.rabbitmq_utils import get_rabbitmq_connection
+from app.main import logger
 
 
 def consume() -> None:
@@ -20,27 +19,27 @@ def consume() -> None:
         """
 
         url: str = json.loads(body)["url"]
-        logging.info("Processing URL: %s", url)
+        logger.info("Processing URL: %s", url)
         try:
             options = webdriver.ChromeOptions()
             driver = webdriver.Remote(
                 command_executor="http://selenium-hub:4444/wd/hub", options=options
             )
-            logging.info("Browser started successfully")
+            logger.info("Browser started successfully")
             driver.get(url)
             page_source: str = driver.page_source
-            logging.info(
+            logger.info(
                 "Page source for %s:\n%s", url, page_source[:1000]
             )  # Логирование первых 1000 символов HTML
             driver.quit()
-            logging.info("Browser closed successfully")
+            logger.info("Browser closed successfully")
         except Exception as e:
-            logging.error("Error processing URL: %s", e)
+            logger.error("Error processing URL: %s", e)
 
     channel.basic_consume(
         queue="url_queue", on_message_callback=callback, auto_ack=True
     )
-    logging.info("Waiting for messages...")
+    logger.info("Waiting for messages...")
     channel.start_consuming()
 
 

@@ -1,15 +1,23 @@
-FROM python:3.10.12
+# Базовый образ для установки зависимостей
+FROM python:3.10.12 AS requirements-stage
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-WORKDIR /code
-
-COPY pyproject.toml poetry.lock /code/
+WORKDIR /tmp
 
 RUN pip install poetry
-RUN poetry install
 
-COPY . /code/
+COPY pyproject.toml poetry.lock* /tmp/
 
-CMD ["poetry", "run", "python", "-m", "browse_test.main"]
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
+
+# Основной образ
+FROM python:3.10.12
+
+WORKDIR /app
+
+COPY --from=requirements-stage /tmp/requirements.txt /app/requirements.txt
+
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+
+COPY . /app/
+
+CMD ["/bin/bash", "/app/entrypoint.sh"]
