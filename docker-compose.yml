@@ -64,14 +64,14 @@ services:
 
   consumer:
     build: .
-    command: ["poetry", "run", "python", "-m", "browse_test.consumer"]
+    command: ["python", "-m", "app.consumer"]
     depends_on:
       rabbitmq:
         condition: service_healthy
       selenium-hub:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f browse_test/consumer.py || exit 1"]
+      test: ["CMD-SHELL", "pgrep -f app/consumer.py || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

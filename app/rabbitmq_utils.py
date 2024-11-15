@@ -1,10 +1,12 @@
 import logging
 import time
-from typing import Tuple, Any
+from typing import Any
 import pika
+from pika.adapters.blocking_connection import BlockingChannel
+from pika import BlockingConnection
 
 
-def get_rabbitmq_connection() -> Tuple[Any, Any]:
+def get_rabbitmq_connection() -> tuple[BlockingConnection, BlockingChannel]:
     """
     Настройка подключения к RabbitMQ.
     """

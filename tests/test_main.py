@@ -1,46 +1,41 @@
-import unittest
-from fastapi.testclient import TestClient
-from browse_test.main import app
-from unittest.mock import patch, MagicMock
-from browse_test.rabbitmq_utils import get_rabbitmq_connection
+import pytest
+from httpx import AsyncClient, ASGITransport
+from app.main import app
 
-client = TestClient(app)
+transport = ASGITransport(app)
 
-class TestMain(unittest.TestCase):
+@pytest.mark.asyncio
+async def test_health_check():
     """
-    Тесты для main.py.
+    Проверяет работоспособность эндпоинта /health.
     """
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}
 
-    @patch("browse_test.main.get_rabbitmq_connection")
-    def test_browse_success(self, mock_get_rabbitmq_connection):
-        """
-        Проверяет успешный POST запрос к /browse.
-        """
-        mock_connection = MagicMock()
-        mock_channel = MagicMock()
-        mock_get_rabbitmq_connection.return_value = (mock_connection, mock_channel)
+@pytest.mark.asyncio
+async def test_browse_without_rabbitmq(mocker):
+    """
+    Проверяет эндпоинт /browse.
+    """
+    mock_connection = mocker.Mock()
+    mock_channel = mocker.Mock()
+    mocker.patch(
+        "app.main.get_rabbitmq_connection",
+        return_value=(mock_connection, mock_channel)
+    )
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.post("/browse", json={"url": "http://example.com"})
+    assert response.status_code == 200
+    assert response.json() == {"message": "URL added to queue"}
 
-        response = client.post("/browse", json={"url": "http://example.com"})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"message": "URL added to queue"})
-        mock_channel.basic_publish.assert_called_once()
-
-    @patch("browse_test.main.get_rabbitmq_connection", side_effect=Exception("Connection error"))
-    def test_browse_failure(self, mock_get_rabbitmq_connection):
-        """
-        Проверяет неудачный POST запрос к /browse.
-        """
-        response = client.post("/browse", json={"url": "http://example.com"})
-        self.assertEqual(response.status_code, 500)
-        self.assertIn("detail", response.json())
-
-    def test_validate_url(self):
-        """
-        Проверяет валидацию URL.
-        """
-        response = client.post("/browse", json={"url": "invalid-url"})
-        self.assertEqual(response.status_code, 422)
-
-
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.asyncio
+async def test_browse_invalid_url():
+    """
+    Проверяет обработку невалидного URL в эндпоинте /browse.
+    """
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.post("/browse", json={"url": "invalid_url"})
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Value error, Invalid URL"

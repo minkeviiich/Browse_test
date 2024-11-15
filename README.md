@@ -10,6 +10,7 @@
 - Logging
 - Poetry
 - Docker Compose
+- Pytest
 
 ## Настройка и запуск
 
@@ -92,5 +93,5 @@ POST /browse
 ## Запуск тестов
 Для запуска тестов используйте следующую команду:
 ```
-python -m unittest discover -s tests
+pytest
 ```
